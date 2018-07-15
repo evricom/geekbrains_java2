@@ -3,5 +3,6 @@ public class HelloWorld1 {
         System.out.println("Hello");
         System.out.println("HelloMerge");
         System.out.println("Merge NewBranch2");
+        System.out.println("Branch2 add");
     }
 }
