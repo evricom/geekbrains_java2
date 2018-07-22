@@ -9,85 +9,54 @@ public class CalcArray {
     float[] arr = new float[size];
 
     public static void main(String[] args) {
-        //new CalcArray().multiTreadCalc(4);
-        int[] a = {1111,1,2,3,4,5,6,7,8,9,10,11,12,13,145,15};
-        int[] b = new int[16];
-        System.out.println(Arrays.toString(a));
-        int p = 4;
-        int lenghtTempArr = a.length/p;
-        for (int i = 0; i < p; i++) {
-            int[] tempArr = new int[lenghtTempArr];
-            System.arraycopy(a, i*p, tempArr, 0, lenghtTempArr );
-            System.out.println(Arrays.toString(tempArr));
-            System.arraycopy(tempArr, 0, b, i*p, lenghtTempArr );
+        int p = 1;
+        while (p < 129){
+            new CalcArray().multiThreadsCalc(p);
+            p *= 2;
         }
-        System.out.println(Arrays.toString(b));
     }
 
-    void simpleCalc() {
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = 1;
-        }
-        long a = System.currentTimeMillis();
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = (float) (arr[i] * Math.sin(0.2f + i / 5) * Math.cos(0.2f + i / 5) * Math.cos(0.4f + i / 2));
-        }
-        System.out.println("В один поток " + (System.currentTimeMillis() - a) + " мсек.");
-    }
-
-    void multiTreadCalc(int numThreads) {
-        for (int i = 0; i < arr.length; i++) {
-            arr[i] = 1;
-        }
-        long a = System.currentTimeMillis();
-
-        int lengthTempArr = arr.length/numThreads;
+    void multiThreadsCalc(int numThreads) {
+        //заполенение массива
+        Arrays.fill(arr,1);
+        // замер времени
+        long time0 = System.currentTimeMillis();
+        //размер частей массива
+        final int lengthTempArr = arr.length/numThreads;
+        // массив потоков
+        Thread[] threads = new Thread[numThreads];
+        // двумерный массив для параллельной обработки
+        float[][] arr2D = new float[numThreads][lengthTempArr];
+        //
         for (int i = 0; i < numThreads; i++) {
-            int[] tempArr = new int[lengthTempArr];
-            System.arraycopy(a, i*numThreads, tempArr, 0, lengthTempArr);
-
-
-
-            System.out.println(Arrays.toString(tempArr));
-           /// System.arraycopy(tempArr, 0, b, i*numThreads, lengthTempArr );
+            float[] tempArr = new float[lengthTempArr];
+            // получим новый массив
+            System.arraycopy(arr, lengthTempArr*i, tempArr, 0, lengthTempArr);
+            // формируем массив потоков
+            int line = i;
+            Thread thread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    for (int col = 0; col < lengthTempArr; col++) {
+                        arr2D[line][col] = (float) (arr2D[line][col] * Math.sin(0.2f + col / 5) * Math.cos(0.2f + col / 5) * Math.cos(0.4f + col / 2));
+                    }
+                }
+            });
+            threads[i] = thread;
         }
-
+        // стартуем потоки
         for (int i = 0; i < numThreads; i++) {
-
+            threads[i].start();
         }
-
-        float[] a1 = new float[h];
-        float[] a2 = new float[h];
-
-
-        System.arraycopy(arr, 0, a1, 0, h);
-        System.arraycopy(arr, h, a2, 0, h);
-        Thread t1 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < a1.length; i++) {
-                    arr[i] = (float) (a1[i] * Math.sin(0.2f + i / 5) * Math.cos(0.2f + i / 5) * Math.cos(0.4f + i / 2));
-                }
+        // ожидаем завершения работы потоков и сливаемся в один массив
+        for (int i = 0; i < numThreads; i++) {
+            try {
+                threads[i].join();
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
-        });
-        Thread t2 = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                for (int i = 0; i < a2.length; i++) {
-                    arr[i] = (float) (a2[i] * Math.sin(0.2f + i / 5) * Math.cos(0.2f + i / 5) * Math.cos(0.4f + i / 2));
-                }
-            }
-        });
-        t1.start();
-        t2.start();
-        try {
-            t1.join();
-            t2.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+            System.arraycopy(arr2D[i],0, arr, i*lengthTempArr, lengthTempArr);
         }
-        System.arraycopy(a1, 0, arr, 0, h);
-        System.arraycopy(a2, 0, arr, h, h);
-        System.out.println("В два потока " + (System.currentTimeMillis() - a) + " мсек.");
+        System.out.println("Потоков: " + numThreads + " время выполнения: " + (System.currentTimeMillis() - time0) + " мсек.");
     }
 }
